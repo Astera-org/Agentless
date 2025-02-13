@@ -1,7 +1,12 @@
 #!/bin/bash
 
+# This file is just a simple and crude shell-ification of the steps illustrated in
+# README_swebench.md.  Those 18-ish steps are all individual python scripts which
+# produce and consume intermediate files in a directory structure.
+# All files will be written to sub-directories of <out_dir>
+
 if [[ "$#" -lt 3 ]]; then
-  echo "Usage: $0 <output_folder> <num_threads> <max_samples> [target_id]"
+  echo "Usage: $0 <out_dir> <num_threads> <max_samples> [target_id]"
   exit 1
 else
   out_dir="$1"
