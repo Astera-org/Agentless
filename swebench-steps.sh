@@ -167,7 +167,8 @@ fi
 echo "11) remove tests"
 python $sdir/agentless/test/select_regression_tests.py \
   --passing_tests ${out_dir}/passing_tests.jsonl \
-  --output_folder ${out_dir}/select_regression 
+  --output_folder ${out_dir}/select_regression \
+  $target_clause
 
 if [ $? -ne 0 ]; then
   exit 1
@@ -194,7 +195,8 @@ echo "13) generate samples of reproduction tests, perform selection"
 python $sdir/agentless/test/generate_reproduction_tests.py \
   --max_samples $max_samples \
   --output_folder ${out_dir}/reproduction_test_samples \
-  --num_threads $num_threads 
+  --num_threads $num_threads \
+  $target_clause
 
 if [ $? -ne 0 ]; then
   exit 1
@@ -223,7 +225,8 @@ python $sdir/agentless/test/generate_reproduction_tests.py \
   --max_samples $max_samples \
   --output_folder ${out_dir}/reproduction_test_samples \
   --output_file reproduction_tests.jsonl \
-  --select
+  --select \
+  $target_clause
 
 if [ $? -ne 0 ]; then
   exit 1
