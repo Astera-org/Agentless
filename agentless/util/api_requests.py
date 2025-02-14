@@ -4,6 +4,7 @@ from typing import Dict, Union
 import anthropic
 import openai
 import tiktoken
+import ollama
 
 
 def num_tokens_from_messages(message, model="gpt-3.5-turbo-0301"):
@@ -99,6 +100,7 @@ def request_chatgpt_engine(config, logger, base_url=None, max_retries=40, timeou
     return ret
 
 
+
 def create_anthropic_config(
     message: str,
     max_tokens: int,
@@ -162,3 +164,42 @@ def request_anthropic_engine(
         retries += 1
 
     return ret
+
+def create_ollama_config(
+    message: Union[str, list],
+    max_tokens: int,
+    temperature: float = 1,
+    batch_size: int = 1,
+    system_message: str = "You are a helpful assistant.",
+    model: str = "gpt-3.5-turbo",
+) -> Dict:
+    if isinstance(message, list):
+        config = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "n": batch_size,
+            "messages": [{"role": "system", "content": system_message}] + message,
+        }
+    else:
+        config = {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "n": batch_size,
+            "messages": [
+                {"role": "system", "content": system_message},
+                {"role": "user", "content": message},
+            ],
+        }
+    return config
+
+
+
+
+def request_ollama_engine(
+    config, logger, max_retries=40, timeout=500, prompt_cache=False
+):
+    pass
+
+

@@ -379,6 +379,7 @@ def run_reproduction_tests(
     instances = get_dataset_from_preds(
         dataset_name, split, instance_ids, predictions, run_id
     )
+    print(instances)
 
     if not instances:
         print("No instances to run.")

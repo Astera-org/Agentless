@@ -16,6 +16,7 @@ else
 fi
 
 target_clause="${target_id:+--target_id $target_id}"
+instance_clause="${target_id:+--instance_ids $target_id}"
 sdir=$(dirname $0)
 set -x
 
@@ -158,7 +159,9 @@ fi
 echo "10) regression test selection"
 python $sdir/agentless/test/run_regression_tests.py \
   --run_id generate_regression_tests \
-  --output_file ${out_dir}/passing_tests.jsonl 
+  --output_file ${out_dir}/passing_tests.jsonl \
+  --num_workers $num_threads \
+  $instance_clause
 
 if [ $? -ne 0 ]; then
   exit 1
@@ -175,7 +178,7 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "12) run on patches generated"
-for i in {1..3}; do
+for i in $(seq 1 4); do
   folder=${out_dir}/repair_sample_${i}
   for num in {0..9..1}; do
       run_id_prefix=$(basename $folder); 
@@ -233,13 +236,15 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "16) evaluate generated patches"
-folder=results/swe-bench-lite/repair_sample_1
-for num in {0..9..1}; do
-    run_id_prefix=$(basename $folder); 
-    python $sdir/agentless/test/run_reproduction_tests.py \
-      --test_jsonl ${out_dir}/reproduction_test_samples/reproduction_tests.jsonl \
-      --predictions_path="${folder}/output_${num}_processed.jsonl" \
-      --run_id="${run_id_prefix}_reproduction_${num}" --num_workers 10;
+for i in $(seq 1 4); do
+  folder=results/swe-bench-lite/repair_sample_${i}
+  for num in {0..9..1}; do
+      run_id_prefix=$(basename $folder); 
+      python $sdir/agentless/test/run_reproduction_tests.py \
+        --test_jsonl ${out_dir}/reproduction_test_samples/reproduction_tests.jsonl \
+        --predictions_path="${folder}/output_${num}_processed.jsonl" \
+        --run_id="${run_id_prefix}_reproduction_${num}" --num_workers 10;
+  done
 done
 
 if [ $? -ne 0 ]; then

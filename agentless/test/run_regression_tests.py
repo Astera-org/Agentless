@@ -31,12 +31,13 @@ def rewrite_report(instance_id, input_folder_path, regression_tests):
     return report["PASS_TO_PASS"]["failure"]
 
 
-def save_passing_tests(output_jsonl_path, input_folder_path, dataset):
-    ds = load_dataset(dataset)
+def save_passing_tests(output_jsonl_path, input_folder_path, instance_ids: list[str]):
+    # ds = load_dataset(dataset)
 
     with jsonlines.open(output_jsonl_path, mode="w") as writer:
-        for entry in ds["test"]:
-            instance_id = entry["instance_id"]
+        for instance_id in instance_ids:
+            # for entry in ds["test"]:
+            # instance_id = entry["instance_id"]
 
             log_path = f"{input_folder_path}/test/{instance_id}/test_output.txt"
             try:
@@ -208,7 +209,8 @@ def _run_regression(args):
             save_passing_tests(
                 args.output_file,
                 os.path.join("logs", "run_evaluation", args.run_id),
-                args.dataset,
+                instance_ids
+                # args.dataset,
             )
 
 
@@ -240,6 +242,7 @@ def main():
         default="princeton-nlp/SWE-bench_Lite",
         choices=["princeton-nlp/SWE-bench_Lite", "princeton-nlp/SWE-bench_Verified"],
     )
+    parser.add_argument("--target_id", type=str)
 
     args = parser.parse_args()
 
