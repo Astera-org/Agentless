@@ -269,7 +269,7 @@ def majority_voting(args):
                 key=lambda i: (vote[patch_keys[i]], -first_appear_idx[patch_keys[i]]),
             )
 
-            if args.target is not None and instance_id == args.target:
+            if args.target_id is not None and instance_id == args.target_id:
                 for patch in vote:
                     print(
                         "=" * 20,
@@ -323,7 +323,7 @@ def normalize_patches(args):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--patch_folder", type=str)
-    parser.add_argument("--target", type=str, default=None)
+    parser.add_argument("--target_id", type=str, default=None)
     parser.add_argument("--num_samples", type=int, default=11)
     parser.add_argument("--deduplicate", action="store_true")
     parser.add_argument("--regression", action="store_true")

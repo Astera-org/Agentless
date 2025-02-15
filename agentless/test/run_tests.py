@@ -376,10 +376,12 @@ def run_reproduction_tests(
                 "instance_id": one_instance_id,
             }
 
+    # print(f"{predictions=}, {instance_ids=}, {split=}, {dataset_name=}")
+    # See SWE-bench REPO:  This looks in logs/run_evaluation
     instances = get_dataset_from_preds(
         dataset_name, split, instance_ids, predictions, run_id
     )
-    # print(instances)
+    # print(f"{len(instances)=}")
 
     if not instances:
         print("No instances to run.")
@@ -524,7 +526,7 @@ def run_tests(
         }
 
     instances = get_dataset_from_preds(
-        dataset_name, split, instance_ids, predictions, run_id
+        dataset_name, split, instance_ids, predictions, run_id,
     )
 
     print(f"Running {len(instances)} unevaluated instances...")

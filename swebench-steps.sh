@@ -27,8 +27,8 @@ if [ -z "${PYTHONPATH}" ]; then
 fi
 
 NUM_PATCHES=10
-NUM_EDIT_LOCATIONS=4
-NUM_TESTS_PER_REPAIR=4
+NUM_EDIT_LOCATIONS=3
+NUM_TESTS_PER_REPAIR=10
 NUM_TOTAL_TESTS=$((NUM_EDIT_LOCATIONS * NUM_TESTS_PER_REPAIR))
 
 
@@ -39,13 +39,16 @@ sdir=$(dirname $0)
 
 echo "Running with ${num_threads} threads, writing to ${out_dir}"
 
+echo "killing any stuck docker containers from previous runs"
+docker ps -q -a --filter "name=^sweb.eval" | xargs -r docker stop | xargs -r docker rm
+
+
 if [[ $start_step -le 1 && 1 -le $end_step ]]; then
   echo "1) localizing to suspicious files"
   python $sdir/agentless/fl/localize.py \
     --file_level \
     --output_folder ${out_dir}/01_file_level \
     --num_threads $num_threads \
-
     $target_clause
 
   if [ $? -ne 0 ]; then
@@ -236,11 +239,11 @@ if [[ $start_step -le 12 && 12 -le $end_step ]]; then
   fi
 fi
 
-# Docker build errors (check logs dir in repo)
-# Produces 12_reproduction_test_samples/output_{
+# Produces # 12_reproduction_test_samples/output_{i}_processed_reproduction_test_verified.jsonl
+# The swebench cache at `logs/run_evaluation` interferes with this.
 if [[ $start_step -le 13 && 13 -le $end_step ]]; then
   echo "13) execute tests on original repo"
-  for num in $(seq 0 $((NUM_TESTS_PER_REPAIR-1))); do 
+  for num in $(seq 0 $((NUM_TOTAL_TESTS-1))); do 
     echo "Processing ${num}"
     python $sdir/agentless/test/run_reproduction_tests.py \
       --run_id="reproduction_test_generation_filter_sample_${num}" \
@@ -271,7 +274,7 @@ fi
 
 if [[ $start_step -le 15 && 15 -le $end_step ]]; then
   echo "15) evaluate generated patches"
-  for i in $(seq 1 $NUM_REPAIR_SAMPLES); do
+  for i in $(seq 1 $NUM_EDIT_LOCATIONS); do
     folder=${out_dir}/08_repair_sample_${i}
     for num in $(seq 0 $((NUM_TESTS_PER_REPAIR-1))); do
         run_id_prefix=$(basename $folder); 
@@ -292,13 +295,15 @@ fi
 
 if [[ $start_step -le 16 && 16 -le $end_step ]]; then
   echo "16) reranking"
-  pf=$(seq 1 $NUM_REPAIR_SAMPLES | sed "s%^%${out_dir}/08_repair_sample_%" | paste -sd "," -)
+  pf=$(seq 1 $NUM_EDIT_LOCATIONS | sed "s%^%${out_dir}/08_repair_sample_%" | paste -sd "," -)
   python $sdir/agentless/repair/rerank.py \
     --patch_folder $pf \
     --num_samples $NUM_TOTAL_TESTS \
     --deduplicate \
     --regression \
-    --reproduction
+    --reproduction \
+    --output_file ${out_dir}/all_preds.jsonl \
+    $target_clause
 
   if [ $? -ne 0 ]; then
     exit 1
