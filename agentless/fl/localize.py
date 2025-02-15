@@ -396,14 +396,18 @@ def localize_instance(
 
 
 def localize_irrelevant(args):
-    swe_bench_data = load_dataset(args.dataset, split="test")
+    ds = load_dataset(args.dataset, split="test")
+    if args.target_id is not None:
+        ds = ds.filter(lambda x: x['instance_id'] == args.target_id)
+
+    print(f"{len(ds)=}")
     existing_instance_ids = (
         load_existing_instance_ids(args.output_file) if args.skip_existing else set()
     )
     if args.num_threads == 1:
-        for bug in tqdm(swe_bench_data, colour="MAGENTA"):
+        for bug in tqdm(ds, colour="MAGENTA"):
             localize_irrelevant_instance(
-                bug, args, swe_bench_data, existing_instance_ids
+                bug, args, ds, existing_instance_ids
             )
     else:
         write_lock = Lock()
@@ -415,31 +419,33 @@ def localize_irrelevant(args):
                     localize_irrelevant_instance,
                     bug,
                     args,
-                    swe_bench_data,
+                    ds,
                     existing_instance_ids,
                     write_lock,
                 )
-                for bug in swe_bench_data
+                for bug in ds
             ]
             for future in tqdm(
                 concurrent.futures.as_completed(futures),
-                total=len(swe_bench_data),
+                total=len(ds),
                 colour="MAGENTA",
             ):
                 future.result()
 
 
 def localize(args):
-    swe_bench_data = load_dataset(args.dataset, split="test")
+    ds = load_dataset(args.dataset, split="test")
+    if args.target_id is not None:
+        ds = ds.filter(lambda x: x['instance_id'] == args.target_id)
     start_file_locs = load_jsonl(args.start_file) if args.start_file else None
     existing_instance_ids = (
         load_existing_instance_ids(args.output_file) if args.skip_existing else set()
     )
 
     if args.num_threads == 1:
-        for bug in tqdm(swe_bench_data, colour="MAGENTA"):
+        for bug in tqdm(ds, colour="MAGENTA"):
             localize_instance(
-                bug, args, swe_bench_data, start_file_locs, existing_instance_ids
+                bug, args, ds, start_file_locs, existing_instance_ids
             )
     else:
         write_lock = Lock()
@@ -451,16 +457,16 @@ def localize(args):
                     localize_instance,
                     bug,
                     args,
-                    swe_bench_data,
+                    ds,
                     start_file_locs,
                     existing_instance_ids,
                     write_lock,
                 )
-                for bug in swe_bench_data
+                for bug in ds
             ]
             for future in tqdm(
                 concurrent.futures.as_completed(futures),
-                total=len(swe_bench_data),
+                total=len(ds),
                 colour="MAGENTA",
             ):
                 future.result()
