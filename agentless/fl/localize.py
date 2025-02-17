@@ -523,9 +523,9 @@ def check_valid_args(args):
         (not args.file_level) and (not args.start_file)
     ), "Must use either file_level or start_file"
 
-    assert (not "deepseek" in args.model) or (
-        args.backend == "deepseek"
-    ), "Must specify `--backend deepseek` if using a DeepSeek model"
+    # assert (not "deepseek" in args.model) or (
+        # args.backend == "deepseek"
+    # ), "Must specify `--backend deepseek` if using a DeepSeek model"
 
 
 def main():
@@ -583,13 +583,15 @@ def main():
             "deepseek-coder",
             "gpt-4o-mini-2024-07-18",
             "claude-3-5-sonnet-20241022",
+            "llama3.2",
+            "deepseek-r1:32b"
         ],
     )
     parser.add_argument(
         "--backend",
         type=str,
         default="openai",
-        choices=["openai", "deepseek", "anthropic"],
+        choices=["openai", "deepseek", "anthropic", "ollama"],
     )
     parser.add_argument(
         "--dataset",

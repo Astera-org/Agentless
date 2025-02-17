@@ -1,5 +1,5 @@
 import time
-from typing import Dict, Union
+from typing import Dict, Union, Tuple
 
 import anthropic
 import openai
@@ -100,7 +100,6 @@ def request_chatgpt_engine(config, logger, base_url=None, max_retries=40, timeou
     return ret
 
 
-
 def create_anthropic_config(
     message: str,
     max_tokens: int,
@@ -171,35 +170,28 @@ def create_ollama_config(
     temperature: float = 1,
     batch_size: int = 1,
     system_message: str = "You are a helpful assistant.",
-    model: str = "gpt-3.5-turbo",
-) -> Dict:
+    model: str = "llama3.2",
+):
     if isinstance(message, list):
-        config = {
-            "model": model,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "n": batch_size,
-            "messages": [{"role": "system", "content": system_message}] + message,
-        }
-    else:
-        config = {
-            "model": model,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-            "n": batch_size,
-            "messages": [
-                {"role": "system", "content": system_message},
-                {"role": "user", "content": message},
-            ],
-        }
-    return config
+        raise NotImplementedError("ollama doesn't seem to support multiple queries")
+    # if batch_size != 1:
+        # raise NotImplementedError("ollama doesn't support batch_size > 1")
 
-
+    opts = ollama.Options(temperature=temperature, num_predict=max_tokens,
+            num_batch=batch_size)
+    system = ollama.Message(role='system', content=system_message)
+    query = ollama.Message(role='user', content=message)
+    return model, opts, system, query
 
 
 def request_ollama_engine(
-    config, logger, max_retries=40, timeout=500, prompt_cache=False
+    config: Tuple[str, ollama.Options, ollama.Message, ollama.Message], 
+    logger, max_retries=40, timeout=500, prompt_cache=False
 ):
-    pass
+    model, opts, system, query = config
+    # TODO: implement retry logic
+    ret = ollama.chat(model=model, options=opts, messages=[system, query])
+    return ret
+
 
 
