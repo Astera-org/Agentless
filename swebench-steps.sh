@@ -6,14 +6,16 @@
 # All files will be written to sub-directories of <out_dir>
 
 if [[ "$#" -lt 4 ]]; then
-  echo "Usage: $0 <out_dir> <num_threads> <start_step> <end_step> [target_id]"
+  echo "Usage: $0 <out_dir> <num_threads> <start_step> <end_step> <backend> <model> [target_id]"
   exit 1
 else
   out_dir="$1"
   num_threads="$2"
   start_step=$(($3))
   end_step=$(($4))
-  target_id="${5:-}"
+  backend="$5"
+  model="$6"
+  target_id="${7:-}"
 fi
 
 if [ -z "${OPENAI_API_KEY}" ]; then
@@ -27,7 +29,7 @@ if [ -z "${PYTHONPATH}" ]; then
 fi
 
 NUM_PATCHES=10
-NUM_EDIT_LOCATIONS=3
+NUM_EDIT_LOCATIONS=4
 NUM_TESTS_PER_REPAIR=10
 NUM_TOTAL_TESTS=$((NUM_EDIT_LOCATIONS * NUM_TESTS_PER_REPAIR))
 
@@ -46,6 +48,8 @@ docker ps -q -a --filter "name=^sweb.eval" | xargs -r docker stop | xargs -r doc
 if [[ $start_step -le 1 && 1 -le $end_step ]]; then
   echo "1) localizing to suspicious files"
   python $sdir/agentless/fl/localize.py \
+    --model $model \
+    --backend $backend \
     --file_level \
     --output_folder ${out_dir}/01_file_level \
     --num_threads $num_threads \
@@ -59,6 +63,8 @@ fi
 if [[ $start_step -le 2 && 2 -le $end_step ]]; then
   echo "2) complement with embedding-based retrieval" 
   python $sdir/agentless/fl/localize.py \
+    --model $model \
+    --backend $backend \
     --file_level \
     --irrelevant \
     --output_folder ${out_dir}/02_file_level_irrelevant \
@@ -102,6 +108,8 @@ fi
 if [[ $start_step -le 5 && 5 -le $end_step ]]; then
   echo "5) localize related elements"
   python $sdir/agentless/fl/localize.py \
+    --backend $backend \
+    --model $model \
     --related_level \
     --output_folder ${out_dir}/05_related_elements \
     --top_n 3 \
@@ -119,6 +127,8 @@ fi
 if [[ $start_step -le 6 && 6 -le $end_step ]]; then
   echo "6) localize to edit locations"
   python $sdir/agentless/fl/localize.py \
+    --backend $backend \
+    --model $model \
     --fine_grain_line_level \
     --output_folder ${out_dir}/06_edit_location_samples \
     --top_n 3 \
@@ -139,6 +149,8 @@ fi
 if [[ $start_step -le 7 && 7 -le $end_step ]]; then
   echo "7) separate individual sets of edit locations"
   python $sdir/agentless/fl/localize.py \
+    --backend $backend \
+    --model $model \
     --merge \
     --output_folder ${out_dir}/07_edit_location_individual \
     --top_n 3 \
@@ -156,10 +168,13 @@ fi
 # Appends 08_repair_sample_{i}/output.jsonl
 # TODO
 if [[ $start_step -le 8 && 8 -le $end_step ]]; then
+  # set -x
   echo "8) generate patches"
   for i in $(seq 1 $NUM_EDIT_LOCATIONS); do
       j=$((i-1))
       python $sdir/agentless/repair/repair.py \
+        --backend $backend \
+        --model $model \
         --loc_file ${out_dir}/07_edit_location_individual/loc_merged_${j}-${j}_outputs.jsonl \
         --output_folder ${out_dir}/08_repair_sample_${i} \
         --loc_interval \
@@ -195,6 +210,8 @@ fi
 if [[ $start_step -le 10 && 10 -le $end_step ]]; then
   echo "10) remove tests"
   python $sdir/agentless/test/select_regression_tests.py \
+    --backend $backend \
+    --model $model \
     --passing_tests ${out_dir}/09_passing_tests.jsonl \
     --output_folder ${out_dir}/10_select_regression \
     $instance_clause
@@ -229,6 +246,8 @@ fi
 if [[ $start_step -le 12 && 12 -le $end_step ]]; then
   echo "12) generate samples of reproduction tests, perform selection"
   python $sdir/agentless/test/generate_reproduction_tests.py \
+    --backend $backend \
+    --model $model \
     --max_samples $NUM_TOTAL_TESTS \
     --output_folder ${out_dir}/12_reproduction_test_samples \
     --num_threads $num_threads \
@@ -261,6 +280,8 @@ fi
 if [[ $start_step -le 14 && 14 -le $end_step ]]; then
   echo "14) select one reproduction test per issue"
   python $sdir/agentless/test/generate_reproduction_tests.py \
+    --backend $backend \
+    --model $model \
     --max_samples $NUM_TOTAL_TESTS \
     --output_folder ${out_dir}/12_reproduction_test_samples \
     --output_file reproduction_tests.jsonl \

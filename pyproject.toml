@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "anthropic>=0.45.2",
     "datasets>=3.2.0",
+    "fire>=0.7.0",
     "jsonlines>=4.0.0",
     "libcst>=1.6.0",
     "llama-index>=0.12.17",
