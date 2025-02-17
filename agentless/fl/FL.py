@@ -234,7 +234,11 @@ Return just the locations wrapped with ```.
         **kwargs,
     ):
         super().__init__(instance_id, structure, problem_statement)
-        self.max_tokens = 300
+        if backend == "ollama" and model_name.startswith("deepseek"):
+            # DeepSeek requires more tokens for the <think> section
+            self.max_tokens = 1024
+        else:
+            self.max_tokens = 300
         self.model_name = model_name
         self.backend = backend
         self.logger = logger
@@ -450,7 +454,7 @@ Return just the locations wrapped with ```.
         )
 
         self.logger.info(f"==== raw output ====")
-        self.logger.info(raw_output)
+        self.logger.info("\n" + raw_output)
         self.logger.info("=" * 80)
         self.logger.info(f"==== extracted locs ====")
         for loc in model_found_locs_separated:
@@ -534,7 +538,7 @@ Return just the locations wrapped with ```.
         )
 
         self.logger.info(f"==== raw output ====")
-        self.logger.info(raw_output)
+        self.logger.info("\n" + raw_output)
         self.logger.info("=" * 80)
         self.logger.info(f"==== extracted locs ====")
         for loc in model_found_locs_separated:
@@ -654,7 +658,7 @@ Return just the locations wrapped with ```.
             model_found_locs_separated_in_samples.append(model_found_locs_separated)
 
             self.logger.info(f"==== raw output ====")
-            self.logger.info(raw_output)
+            self.logger.info("\n" + raw_output)
             self.logger.info("=" * 80)
             self.logger.info(f"==== extracted locs ====")
             for loc in model_found_locs_separated:
@@ -773,7 +777,7 @@ Return just the locations wrapped with ```.
             model_found_locs_separated_in_samples.append(model_found_locs_separated)
 
             self.logger.info(f"==== raw output ====")
-            self.logger.info(raw_output)
+            self.logger.info("\n" + raw_output)
             self.logger.info("=" * 80)
             self.logger.info(f"==== extracted locs ====")
             for loc in model_found_locs_separated:
