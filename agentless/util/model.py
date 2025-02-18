@@ -5,8 +5,10 @@ from typing import List
 from agentless.util.api_requests import (
     create_anthropic_config,
     create_chatgpt_config,
+    create_ollama_config,
     request_anthropic_engine,
     request_chatgpt_engine,
+    request_ollama_engine,
 )
 
 
@@ -96,6 +98,8 @@ class OpenAIChatDecoder(DecoderBase):
                     },
                 }
             )
+        # import pdb
+        # pdb.set_trace()
         return trajs
 
     def is_direct_completion(self) -> bool:
@@ -383,6 +387,42 @@ class DeepSeekChatDecoder(DecoderBase):
     def is_direct_completion(self) -> bool:
         return False
 
+class OllamaChatDecoder(DecoderBase):
+    def __init__(self, name: str, logger, **kwargs) -> None:
+        super().__init__(name, logger, **kwargs)
+
+    def codegen(
+        self, message: str, num_samples: int = 1, prompt_cache: bool = False
+    ) -> List[dict]:
+        if self.temperature == 0:
+            assert num_samples == 1
+        batch_size = min(self.batch_size, num_samples)
+
+        config = create_ollama_config(
+            message=message,
+            max_tokens=self.max_new_tokens,
+            temperature=self.temperature,
+            batch_size=batch_size,
+            model=self.name,
+        )
+        # TODO - optimize
+        trajs = []
+        for _ in range(num_samples):
+            ret = request_ollama_engine(config, self.logger)
+            if ret is None:
+                raise RuntimeError("Didn't get a response from ollama")
+            traj = { "response": ret.message.content,
+                     "usage": {
+                        "completion_tokens": ret.eval_count,
+                        "prompt_tokens": ret.prompt_eval_count,
+                        },
+                   }
+            trajs.append(traj)
+
+        return trajs
+
+    def is_direct_completion(self) -> bool:
+        return False
 
 def make_model(
     model: str,
@@ -415,6 +455,14 @@ def make_model(
             batch_size=batch_size,
             max_new_tokens=max_tokens,
             temperature=temperature,
+        )
+    elif backend == "ollama":
+        return OllamaChatDecoder(
+            name=model,
+            logger=logger,
+            batch_size=batch_size,
+            max_new_tokens=max_tokens,
+            temperature=temperature
         )
     else:
         raise NotImplementedError

@@ -31,11 +31,14 @@ def run_reproduction_for_each_instance(args, lines, run_id, test_jsonl):
 
 
 def _run_reproduction_tests(args):
+    ds = load_dataset(args.dataset, split="test")
+    if args.instance_ids is not None:
+        ds = ds.filter(lambda x: x['instance_id'] in args.instance_ids)
+
     if args.testing:
         # for reproduction test selection
         # run on original repo to select tests which can reproduce the issue
-        ds = load_dataset(args.dataset)
-        instance_ids = ds["test"]["instance_id"]
+        instance_ids = ds["instance_id"]
         patches = [
             {"instance_id": instance_id, "patch": "", "normalized_patch": ""}
             for instance_id in instance_ids
@@ -66,9 +69,8 @@ def _run_reproduction_tests(args):
     elif args.predictions_path == "gold":
         # check on groundtruth patches
         # for evaluation purposes
-        ds = load_dataset(args.dataset)
-        instance_ids = ds["test"]["instance_id"]
-        patches = ds["test"]["patch"]
+        instance_ids = ds["instance_id"]
+        patches = ds["patch"]
 
         results = run_reproduction_tests(
             instance_ids,

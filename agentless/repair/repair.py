@@ -752,13 +752,15 @@ def main():
             "deepseek-coder",
             "gpt-4o-mini-2024-07-18",
             "claude-3-5-sonnet-20241022",
+            "llama3.2",
+            "deepseek-r1:32b"
         ],
     )
     parser.add_argument(
         "--backend",
         type=str,
         default="openai",
-        choices=["openai", "deepseek", "anthropic"],
+        choices=["openai", "deepseek", "anthropic", "ollama"],
     )
     parser.add_argument("--output_folder", type=str, required=True)
     parser.add_argument("--post_process", action="store_true")
@@ -788,9 +790,9 @@ def main():
 
     args = parser.parse_args()
 
-    assert (not "deepseek" in args.model) or (
-        args.backend == "deepseek"
-    ), "Must specify `--backend deepseek` if using a DeepSeek model"
+    # assert (not "deepseek" in args.model) or (
+        # args.backend == "deepseek"
+    # ), "Must specify `--backend deepseek` if using a DeepSeek model"
 
     # diff_format and str_replace_format cannot be both True
     assert not (
@@ -821,6 +823,8 @@ def main():
             )
         post_process_repair(args)
     elif args.gen_and_process:
+        # import pdb
+        # pdb.set_trace()
         repair(args)
         args.raw_output_file = args.output_file
         for i in range(args.max_samples):

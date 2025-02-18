@@ -1,0 +1,22 @@
+[project]
+name = "agentless"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "anthropic>=0.45.2",
+    "datasets>=3.2.0",
+    "fire>=0.7.0",
+    "jsonlines>=4.0.0",
+    "libcst>=1.6.0",
+    "llama-index>=0.12.17",
+    "ollama>=0.4.7",
+    "openai>=1.63.0",
+    "pre-commit>=4.1.0",
+    "swebench",
+    "tiktoken>=0.8.0",
+]
+
+[tool.uv.sources]
+swebench = { git = "https://github.com/princeton-nlp/SWE-bench", rev = "v2.1.6" }

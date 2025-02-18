@@ -1,9 +1,10 @@
 import time
-from typing import Dict, Union
+from typing import Dict, Union, Tuple
 
 import anthropic
 import openai
 import tiktoken
+import ollama
 
 
 def num_tokens_from_messages(message, model="gpt-3.5-turbo-0301"):
@@ -162,3 +163,35 @@ def request_anthropic_engine(
         retries += 1
 
     return ret
+
+def create_ollama_config(
+    message: Union[str, list],
+    max_tokens: int,
+    temperature: float = 1,
+    batch_size: int = 1,
+    system_message: str = "You are a helpful assistant.",
+    model: str = "llama3.2",
+):
+    if isinstance(message, list):
+        raise NotImplementedError("ollama doesn't seem to support multiple queries")
+    # if batch_size != 1:
+        # raise NotImplementedError("ollama doesn't support batch_size > 1")
+
+    opts = ollama.Options(temperature=temperature, num_predict=max_tokens,
+            num_batch=batch_size)
+    system = ollama.Message(role='system', content=system_message)
+    query = ollama.Message(role='user', content=message)
+    return model, opts, system, query
+
+
+def request_ollama_engine(
+    config: Tuple[str, ollama.Options, ollama.Message, ollama.Message], 
+    logger, max_retries=40, timeout=500, prompt_cache=False
+):
+    model, opts, system, query = config
+    # TODO: implement retry logic
+    ret = ollama.chat(model=model, options=opts, messages=[system, query])
+    return ret
+
+
+

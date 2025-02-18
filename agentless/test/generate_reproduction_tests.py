@@ -93,30 +93,18 @@ def extract_first_code_block(text):
     return None
 
 
-def gen_test(instance_id, args, swe_bench_data, prev_o, write_lock=None):
+def gen_test(data_item, args, prev_o, write_lock=None):
 
-    if args.target_id is not None:
-        if args.target_id != instance_id:
-            return
-
+    instance_id = data_item['instance_id']
     log_file = os.path.join(
         args.output_folder, "generating_test_logs", f"{instance_id}.log"
     )
     logger = setup_logger(log_file)
-    found = False
-    for o in prev_o:
-        if o["instance_id"] == instance_id:
-            found = True
-            break
-
-    if found:
-        logger.info(f"skipping {instance_id} since patch already generated")
-        return None
 
     logger.info(f"================ generating test for {instance_id} ================")
 
-    bench_data = [x for x in swe_bench_data if x["instance_id"] == instance_id][0]
-    problem_statement = bench_data["problem_statement"]
+    # bench_data = [x for x in swe_bench_data if x["instance_id"] == instance_id][0]
+    problem_statement = data_item["problem_statement"]
 
     raw_outputs, counts, all_generations, traj = (
         [],
@@ -216,7 +204,7 @@ def gen_test(instance_id, args, swe_bench_data, prev_o, write_lock=None):
 
         raw_output = ret["response"]
         logger.info(f"raw output:\n{raw_output}")
-        print((f"raw output:\n{raw_output}"))
+        # print((f"raw output:\n{raw_output}"))
         all_generations.append(raw_output)
 
         counts.append(count)
@@ -249,27 +237,35 @@ def generate_tests(args):
     with open(f"{args.output_folder}/args.json", "w") as f:
         json.dump(vars(args), f, indent=4)
 
-    swe_bench_data = load_dataset(args.dataset, split="test")
-    instances = swe_bench_data["instance_id"]
+    ds = load_dataset(args.dataset, split="test")
+    if args.target_id is not None:
+        ds = ds.filter(lambda x: x['instance_id'] == args.target_id)
     prev_o = load_jsonl(args.output_file) if os.path.exists(args.output_file) else []
 
     if args.num_threads == 1:
-        for instance_id in tqdm(instances, total=len(instances), colour="MAGENTA"):
-            gen_test(instance_id, args, swe_bench_data, prev_o)
+        for data_item in tqdm(ds, total=len(ds), colour="MAGENTA"):
+        # for instance_id in tqdm(instances, total=len(instances), colour="MAGENTA"):
+            gen_test(data_item, args, prev_o)
     else:
         write_lock = Lock()
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=args.num_threads
         ) as executor:
+            futures = []
+            for data_item in ds:
+                future = executor.submit(gen_test, data_item, args, prev_o, write_lock)
+                futures.append(future)
+            """
             futures = {
                 executor.submit(
                     gen_test, instance_id, args, swe_bench_data, prev_o, write_lock
                 ): instance_id
                 for instance_id in instances
             }
+            """
             for future in tqdm(
                 concurrent.futures.as_completed(futures),
-                total=len(instances),
+                total=len(ds),
                 colour="MAGENTA",
             ):
                 future.result()
@@ -479,7 +475,7 @@ def test_selection(args):
         with open(f"{args.output_folder}/{args.output_file}", "a") as f:
             f.write(json.dumps(result) + "\n")
 
-    print(total_count)
+    print(f"Total reproduction tests written: {total_count}")
 
 
 def main():

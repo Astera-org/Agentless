@@ -396,14 +396,18 @@ def localize_instance(
 
 
 def localize_irrelevant(args):
-    swe_bench_data = load_dataset(args.dataset, split="test")
+    ds = load_dataset(args.dataset, split="test")
+    if args.target_id is not None:
+        ds = ds.filter(lambda x: x['instance_id'] == args.target_id)
+
+    print(f"{len(ds)=}")
     existing_instance_ids = (
         load_existing_instance_ids(args.output_file) if args.skip_existing else set()
     )
     if args.num_threads == 1:
-        for bug in tqdm(swe_bench_data, colour="MAGENTA"):
+        for bug in tqdm(ds, colour="MAGENTA"):
             localize_irrelevant_instance(
-                bug, args, swe_bench_data, existing_instance_ids
+                bug, args, ds, existing_instance_ids
             )
     else:
         write_lock = Lock()
@@ -415,31 +419,33 @@ def localize_irrelevant(args):
                     localize_irrelevant_instance,
                     bug,
                     args,
-                    swe_bench_data,
+                    ds,
                     existing_instance_ids,
                     write_lock,
                 )
-                for bug in swe_bench_data
+                for bug in ds
             ]
             for future in tqdm(
                 concurrent.futures.as_completed(futures),
-                total=len(swe_bench_data),
+                total=len(ds),
                 colour="MAGENTA",
             ):
                 future.result()
 
 
 def localize(args):
-    swe_bench_data = load_dataset(args.dataset, split="test")
+    ds = load_dataset(args.dataset, split="test")
+    if args.target_id is not None:
+        ds = ds.filter(lambda x: x['instance_id'] == args.target_id)
     start_file_locs = load_jsonl(args.start_file) if args.start_file else None
     existing_instance_ids = (
         load_existing_instance_ids(args.output_file) if args.skip_existing else set()
     )
 
     if args.num_threads == 1:
-        for bug in tqdm(swe_bench_data, colour="MAGENTA"):
+        for bug in tqdm(ds, colour="MAGENTA"):
             localize_instance(
-                bug, args, swe_bench_data, start_file_locs, existing_instance_ids
+                bug, args, ds, start_file_locs, existing_instance_ids
             )
     else:
         write_lock = Lock()
@@ -451,16 +457,16 @@ def localize(args):
                     localize_instance,
                     bug,
                     args,
-                    swe_bench_data,
+                    ds,
                     start_file_locs,
                     existing_instance_ids,
                     write_lock,
                 )
-                for bug in swe_bench_data
+                for bug in ds
             ]
             for future in tqdm(
                 concurrent.futures.as_completed(futures),
-                total=len(swe_bench_data),
+                total=len(ds),
                 colour="MAGENTA",
             ):
                 future.result()
@@ -517,9 +523,9 @@ def check_valid_args(args):
         (not args.file_level) and (not args.start_file)
     ), "Must use either file_level or start_file"
 
-    assert (not "deepseek" in args.model) or (
-        args.backend == "deepseek"
-    ), "Must specify `--backend deepseek` if using a DeepSeek model"
+    # assert (not "deepseek" in args.model) or (
+        # args.backend == "deepseek"
+    # ), "Must specify `--backend deepseek` if using a DeepSeek model"
 
 
 def main():
@@ -577,13 +583,15 @@ def main():
             "deepseek-coder",
             "gpt-4o-mini-2024-07-18",
             "claude-3-5-sonnet-20241022",
+            "llama3.2",
+            "deepseek-r1:32b"
         ],
     )
     parser.add_argument(
         "--backend",
         type=str,
         default="openai",
-        choices=["openai", "deepseek", "anthropic"],
+        choices=["openai", "deepseek", "anthropic", "ollama"],
     )
     parser.add_argument(
         "--dataset",
