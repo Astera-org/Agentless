@@ -97,27 +97,56 @@ The locations can be specified as class names, function or method names, or exac
 
 ###
 
-Please provide the class name, function or method name, or the exact line numbers that need to be edited.
-The possible location outputs should be either "class", "function" or "line".
+Please provide the class name, function or method name, or the exact line numbers
+that need to be edited.
 
-### Examples:
+The first line of output should consist of exactly three backticks, like this:  
+
+```
+
+The second line should have a relative file path for some python source file.  The
+remaining lines should be in one of the following formats:
+
+line: <integer>
+
+class: <name-of-python-class>
+
+function: <name-of-python-function>
+
+in which the information refers to a line, class, or function in the named source
+file.  There can be zero or more such lines of each type.
+
+Finally, another line consisting of three backticks (```) should be added at the end.
+
+
+Here are three examples of acceptable results:
+
+Example 1:
+
 ```
 full_path1/file1.py
 line: 10
 class: MyClass1
 line: 51
+```
 
+Example 2:
+
+```
 full_path2/file2.py
 function: MyClass2.my_method
 line: 12
+```
 
+Example 3:
+
+```
 full_path3/file3.py
 function: my_function
 line: 24
 line: 156
 ```
 
-Return just the location(s) wrapped with ```.
 """
 
     obtain_relevant_code_combine_top_n_no_line_number_prompt = """
@@ -575,6 +604,8 @@ Return just the locations wrapped with ```.
             sticky_scroll=sticky_scroll,
             no_line_number=no_line_number,
         )
+        import pdb
+        pdb.set_trace()
         if no_line_number:
             template = self.obtain_relevant_code_combine_top_n_no_line_number_prompt
         else:

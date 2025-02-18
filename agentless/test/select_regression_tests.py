@@ -179,13 +179,14 @@ def main():
             "deepseek-coder",
             "gpt-4o-mini-2024-07-18",
             "claude-3-5-sonnet-20241022",
+            "deepseek-r1:32b"
         ],
     )
     parser.add_argument(
         "--backend",
         type=str,
         default="openai",
-        choices=["openai", "deepseek", "anthropic"],
+        choices=["openai", "deepseek", "anthropic", "ollama"],
     )
     parser.add_argument("--output_folder", type=str, required=True)
     parser.add_argument("--target_id", type=str)
@@ -208,9 +209,9 @@ def main():
 
     args = parser.parse_args()
 
-    assert (not "deepseek" in args.model) or (
-        args.backend == "deepseek"
-    ), "Must specify `--backend deepseek` if using a DeepSeek model"
+    # assert (not "deepseek" in args.model) or (
+        # args.backend == "deepseek"
+    # ), "Must specify `--backend deepseek` if using a DeepSeek model"
 
     if not os.path.exists(args.output_folder):
         os.makedirs(args.output_folder)
